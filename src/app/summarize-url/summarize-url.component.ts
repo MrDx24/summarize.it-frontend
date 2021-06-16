@@ -7,23 +7,22 @@ import {formatDate } from '@angular/common';
 import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { NzNotificationService } from 'ng-zorro-antd/notification';
+import { Url } from 'url';
 (<any>pdfMake).vfs = pdfFonts.pdfMake.vfs;
 
 @Component({
-  selector: 'app-my-summarizer',
-  templateUrl: './my-summarizer.component.html',
-  styleUrls: ['./my-summarizer.component.css']
+  selector: 'app-summarize-url',
+  templateUrl: './summarize-url.component.html',
+  styleUrls: ['./summarize-url.component.css']
 })
-export class MySummarizerComponent implements OnInit {
+export class SummarizeUrlComponent implements OnInit {
 
-  mainForm!: FormGroup;
+
+  urlLinkForm!: FormGroup;
   data:string | undefined
-  tot_time:string | undefined
-  success:boolean | undefined;
-  error_not:boolean | undefined;
-  selectedMethod: string | undefined
+  sample: any
   today= new Date();
-  todaysDataTime = '';
+  tot_time: string | undefined
   flag:boolean | undefined
 
   constructor(
@@ -34,39 +33,40 @@ export class MySummarizerComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.mainForm = this.fb.group({
-      ogstr: ['', Validators.required],
+
+    this.urlLinkForm = this.fb.group({
+      urlLink: ['', [Validators.required, Validators.pattern('((http|https)://)(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)')]],
 
     });
   }
 
-
-  summary() {
+  summaryUrl(){
     this.flag=true
-    console.log(this.mainForm.value)
-    this.http.post('https://summarize-it-backend.herokuapp.com/summary', this.mainForm.value).subscribe((response: any) => {
+    this.sample = {"dataUrl": this.urlLink?.value}
+    console.log("sample: ", this.sample)
+    this.http.post('http://127.0.0.1:5000/summaryUrl', this.sample).subscribe((response: any) => {
 
+      console.log("Done");
+      console.log(response.data)
       this.flag=false
-      this.data = response.data;
-      this.tot_time = response.tot_time
+      this.data=response.data
+      this.tot_time=response.tot_time
+      console.log(response.tot_time)
       this.createNotification("success",
       "Success",
       "Summary generated successfully.");
 
-
     }, (error) => {
 
-      // console.log(error);
+      console.log(error);
+      console.log("Not done")
       this.createNotification("error",
       "Error",
       "There is an error in generating summary, please try again later.");
-      this.flag=false
-      //alert('Summarization not Successful');
+
 
     });
   }
-
-
 
   download(){
     var dd = {
@@ -75,7 +75,7 @@ export class MySummarizerComponent implements OnInit {
           text: 'Summarization method selected : ',
           style: 'header'
         },
-        'Text pasted in textarea\n\n',
+        'By pasting URL-link\n\n',
         {
           text: 'Date & Time : '+ formatDate(this.today, 'dd-MMM-yyyy & hh:mm:ss a', 'en-US', '+0530')+'\n\n',
           style: 'contents'
@@ -85,7 +85,7 @@ export class MySummarizerComponent implements OnInit {
           style: 'subheader'
         },
         {
-          text: this.mainForm.value['ogstr']+'\n\n',
+          text: this.urlLinkForm.value['urlLink']+'\n\n',
           style: 'contents'
         },
         {
@@ -127,11 +127,6 @@ export class MySummarizerComponent implements OnInit {
     console.log("pdf generated!!!!")
   }
 
-  selectHandler(event: any){
-    this.selectedMethod = event.target.value;
-    console.log(this.selectedMethod)
-  }
-
   createNotification(type: string, title:string, message:string): void {
     this.notification.create(
       type,
@@ -145,11 +140,8 @@ export class MySummarizerComponent implements OnInit {
     );
   }
 
-  get ogstr() {
-    return this.mainForm.get('ogstr');
+
+  get urlLink() {
+    return this.urlLinkForm.get('urlLink');
   }
-
-
-
-
 }
